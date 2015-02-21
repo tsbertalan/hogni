@@ -9,10 +9,10 @@
 // accidentally breaking code.
 
 // IR sensor
-const int IRPIN = A2;
-const int IRREADINGS = 64;
-const int IRDIFFERENCE = 93;
-const int IRMODEL = 20150;
+const int irPin = A2;
+const int irReadings = 64;
+const int irDifference = 93;
+const int irModel = 20150;
 
 // Motor speeds and ramp increment delays.
 const int maxSpeed = 20;
@@ -42,7 +42,7 @@ const int offDelay = 2000;  // Minimum number of ms to be off
 
 
 // Create IR reader object.
-SharpIR sharp(IRPIN, IRREADINGS, IRDIFFERENCE, IRMODEL);
+SharpIR sharp(irPin, irReadings, irDifference, irModel);
 
 // Create the motor shield object with the default I2C address.
 Adafruit_MotorShield AFMS = Adafruit_MotorShield();
@@ -69,7 +69,7 @@ void setup()
 
   
   // Set pinmodes.
-  pinMode(IRPIN, INPUT);
+  pinMode(irPin, INPUT);
   pinMode(switchRead, INPUT);
   pinMode(A0, OUTPUT);
   
