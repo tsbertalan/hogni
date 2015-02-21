@@ -41,8 +41,8 @@ const int offDelay = 2000;  // Minimum number of ms to be off
 
 
 
-// Create IR reader object.
-SharpIR sharp(irPin, irReadings, irDifference, irModel);
+// Create IR sensor object.
+SharpIR irSensor(irPin, irReadings, irDifference, irModel);
 
 // Create the motor shield object with the default I2C address.
 Adafruit_MotorShield AFMS = Adafruit_MotorShield();
@@ -248,7 +248,7 @@ int getDistance()
 {
   // Query the IR sensor for forward distance.
   
-  int dist = sharp.distance();
+  int dist = irSensor.distance();
   String msg = " ";
   Serial.println(msg + dist + "cm ");
   return dist;
