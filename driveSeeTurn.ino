@@ -55,27 +55,6 @@ Adafruit_DCMotor *steering = AFMS.getMotor(2);
 
 
 
-
-
-
-void rampUp(Adafruit_DCMotor *motor, int topSpeed, int delayTime){
-  uint8_t i;
-  for(i=0; i<topSpeed; i++){
-    motor->setSpeed(i);
-    delay(delayTime);
-  }
-}
-
-void rampDown(Adafruit_DCMotor *motor, int topSpeed, int delayTime){
-  uint8_t i;
-  for(i=topSpeed; i!=0; i--){
-    motor->setSpeed(i);
-    delay(delayTime);
-  }
-}
-
-
-
 void setup() {
   Serial.begin(9600);           // set up Serial library at 9600 bps
 
@@ -96,112 +75,6 @@ void setup() {
   digitalWrite(A0, HIGH);
 
 }
-
-
-void turn22L(){
-  // STEER LEFT
-  steering->run(FORWARD);
-  rampUp(steering, steerSpeed, steerDelay);
-  // GO FORWARD
-  drive->run(FORWARD);
-  rampUp(drive, maxSpeed, driveDelay);
-  delay(500);
-  rampDown(drive, maxSpeed, driveDelay);
-  //STEER STRAIGHT
-  rampDown(steering, steerSpeed, steerDelay);
-  //STEER RIGHT
-  steering->run(BACKWARD);
-  rampUp(steering, steerSpeed, steerDelay);
-  // GO BACK
-  drive->run(BACKWARD);
-  rampUp(drive, maxSpeed, driveDelay);
-  delay(500);
-  rampDown(drive, maxSpeed, driveDelay);
-  //STEER STRAIGHT
-  rampDown(steering, steerSpeed, steerDelay);
-}
-
-
-
-void turn(int angle)
-{
-  String msg = "";
-  Serial.println(msg + "Turning " + angle + " degrees.");
-  if(angle > 0)
-  {
-    // Turning left.
-    for(int i=0; i<angle / 22; i++)
-    {
-      turn22L();
-    }
-  }
-  else
-  {
-    Serial.println("I can only turn left. I'm not an ambi-turner.");
-  }
-}
-
-
-
-
-void go(int cmDist, bool forward)
-{
-  String msg = "";
-  Serial.print("Going ");
-  if(forward){
-    Serial.print(" forward ");
-  }
-  else{
-    Serial.print(" backward ");
-  }
-  Serial.println(msg + cmDist + " cm.");
-
-  //drive->run(RELEASE); // stop the motor
-  if(forward)
-  {
-    drive->run(FORWARD);
-  }
-  else
-  {
-    drive->run(BACKWARD);
-  }
-  rampUp(drive, maxSpeed, driveDelay);
-  delay(1000 * cmDist / 50); // 1000 ms is about right for 50 cm at this speed. Very fragile, I know.
-  rampDown(drive, maxSpeed, driveDelay);
-}
-
-
-
-void stopDrive()
-{
-  Serial.println("Stopping.");
-  drive->run(RELEASE);
-}
-
-
-
-void releaseSteering()
-{
-  Serial.println("Centering steering.");
-  steering->run(RELEASE);
-}
-
-
-
-
-
-int getDistance()
-{
-  int dist = sharp.distance();
-  String msg = " ";
-  Serial.println(msg + dist + "cm ");
-  return dist;
-}
-
-
-
-
-
 
 
 bool done = false;
@@ -243,6 +116,126 @@ void loop() {
     delay(offDelay);
   }
 }
+
+
+
+
+
+void rampUp(Adafruit_DCMotor *motor, int topSpeed, int delayTime){
+  uint8_t i;
+  for(i=0; i<topSpeed; i++){
+    motor->setSpeed(i);
+    delay(delayTime);
+  }
+}
+
+
+void rampDown(Adafruit_DCMotor *motor, int topSpeed, int delayTime){
+  uint8_t i;
+  for(i=topSpeed; i!=0; i--){
+    motor->setSpeed(i);
+    delay(delayTime);
+  }
+}
+
+
+void turn22L(){
+  // STEER LEFT
+  steering->run(FORWARD);
+  rampUp(steering, steerSpeed, steerDelay);
+  // GO FORWARD
+  drive->run(FORWARD);
+  rampUp(drive, maxSpeed, driveDelay);
+  delay(500);
+  rampDown(drive, maxSpeed, driveDelay);
+  //STEER STRAIGHT
+  rampDown(steering, steerSpeed, steerDelay);
+  //STEER RIGHT
+  steering->run(BACKWARD);
+  rampUp(steering, steerSpeed, steerDelay);
+  // GO BACK
+  drive->run(BACKWARD);
+  rampUp(drive, maxSpeed, driveDelay);
+  delay(500);
+  rampDown(drive, maxSpeed, driveDelay);
+  //STEER STRAIGHT
+  rampDown(steering, steerSpeed, steerDelay);
+}
+
+
+void turn(int angle)
+{
+  String msg = "";
+  Serial.println(msg + "Turning " + angle + " degrees.");
+  if(angle > 0)
+  {
+    // Turning left.
+    for(int i=0; i<angle / 22; i++)
+    {
+      turn22L();
+    }
+  }
+  else
+  {
+    Serial.println("I can only turn left. I'm not an ambi-turner.");
+  }
+}
+
+
+void go(int cmDist, bool forward)
+{
+  String msg = "";
+  Serial.print("Going ");
+  if(forward){
+    Serial.print(" forward ");
+  }
+  else{
+    Serial.print(" backward ");
+  }
+  Serial.println(msg + cmDist + " cm.");
+
+  //drive->run(RELEASE); // stop the motor
+  if(forward)
+  {
+    drive->run(FORWARD);
+  }
+  else
+  {
+    drive->run(BACKWARD);
+  }
+  rampUp(drive, maxSpeed, driveDelay);
+  delay(1000 * cmDist / 50); // 1000 ms is about right for 50 cm at this speed. Very fragile, I know.
+  rampDown(drive, maxSpeed, driveDelay);
+}
+
+
+void stopDrive()
+{
+  Serial.println("Stopping.");
+  drive->run(RELEASE);
+}
+
+
+
+void releaseSteering()
+{
+  Serial.println("Centering steering.");
+  steering->run(RELEASE);
+}
+
+
+int getDistance()
+{
+  int dist = sharp.distance();
+  String msg = " ";
+  Serial.println(msg + dist + "cm ");
+  return dist;
+}
+
+
+
+
+
 
 
 
