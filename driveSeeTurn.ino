@@ -79,7 +79,6 @@ void setup()
 
 void loop()
 {
-  uint8_t i;
   int dist;  // Distance seen by forward-facing IR, in cm.
   
   if(digitalRead(switchRead) == HIGH) // Check sleep switch.
