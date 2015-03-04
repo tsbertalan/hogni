@@ -14,25 +14,22 @@ const int irDifference = 93;
 const int irModel = 20150;
 
 // Motor speeds and ramp increment delays.
-const int maxSpeed = 20;
+const int maxSpeed = 64;
+int driveSpeed = 40;  // 20 at 12v
 const int driveDelay = 2;
-const int steerSpeed = 90;
+const int steerSpeed = 196; // 90 at 12v
 const int steerDelay = 0;
 
 // Distances (cm) and angles (deg) for navigation.
 const int sightThresh = 80;  // Distance within which a turn
                              // should be executed rather than a forward run.
 //const int backDist = 40;   // Distance to backtrack for very close objects.
-const int turnAngle = 44;    // Can be anything, but will executed modulo 22
+const int turnAngle = 22;    // Can be anything, but will executed modulo 22
                              // (the emperical included angle of a
                              // single three-point turn).
 
 const int STEPDELAY = 0;  // Delay within main loop. Lower -> less sanity.
 
-// Sleep switch
-const int switchRead = 13;  // Provide digital HIGH ...
-const int switchWrite = A0; // ... to be read by the sleep switch
-                            // (two pins might not actually be necessary for this).
 const int offDelay = 2000;  // Minimum number of ms to be off
                             // before checking the switch again.
 
@@ -51,7 +48,9 @@ Adafruit_DCMotor *drive = AFMS.getMotor(1);
 Adafruit_DCMotor *steering = AFMS.getMotor(2);
 
 
-
+const int leftSwitch = 6;
+const int rightSwitch = 3;
+const int potPin = 3;
 
 
 void setup()
@@ -69,51 +68,73 @@ void setup()
   
   // Set pinmodes.
   pinMode(irPin, INPUT);
-  pinMode(switchRead, INPUT);
-  pinMode(A0, OUTPUT);
-  
-  // Turn on pin for off switch.
-  digitalWrite(A0, HIGH);
+  pinMode(leftSwitch, INPUT);  // Without a restistor (LED counts, right?) beside the input pin, we'd need INPUT_PULLUP
+  pinMode(rightSwitch, INPUT);
+
 }
 
-
+int potVal = 0;
 void loop()
 {
+  Serial.println("begin.");
+  potVal = analogRead(potPin);  // [0, 1023]
+  Serial.print("potVal: ");
+  Serial.println(potVal);
+  driveSpeed = int(potVal * float(maxSpeed) / 1023.0);
+  Serial.print("driveSpeed: ");
+  Serial.println(driveSpeed);  
   int dist;  // Distance seen by forward-facing IR, in cm.
   
-  if(digitalRead(switchRead) == HIGH) // Check sleep switch.
+  if (digitalRead(leftSwitch) == HIGH)
   {
-    dist = getDistance();
-
-    if(dist < sightThresh)
+    if (digitalRead(rightSwitch) == HIGH)
     {
-      // If an object is ahead of us, turn before proceeding.
-      //      if(dis < backDist)
-      //      {
-      //        // If the object is very close,
-      //        // go back a little first, then turn.
-      //        go(25, false);
-      //      }
-      turn(turnAngle);    
+      Serial.println("LEFT  RIGHT");
+      go(-32);
     }
     else
-    { // Clear ahead; run forward.
-      if(dist > 0)
-      {
-        go(dist / 4, true);
-      }   
+    {
+      Serial.println("LEFT");
+      turn(45);
     }
-    delay(STEPDELAY);
-    
   }
   else
-  { // switch is off
+  {
+    if (digitalRead(rightSwitch) == HIGH)
+    {
+      Serial.println("      RIGHT");
+      turn(-45);
+    }
+    else
+    {
+      // Neither switch is closed.
+
   
-    stopDrive();
-    releaseSteering();
-    delay(offDelay);
+  
+      dist = getDistance();
     
+      if(dist < sightThresh)
+      {
+        // If an object is ahead of us, turn before proceeding.
+        //      if(dis < backDist)
+        //      {
+        //        // If the object is very close,
+        //        // go back a little first, then turn.
+        //        go(25, false);
+        //      }
+        turn(turnAngle);    
+      }
+      else
+      { // Clear ahead; run forward.
+        if(dist > 0)
+        {
+          go(dist / 4, true);
+        }   
+      }
+
+    }
   }
+  delay(STEPDELAY);
 }
 
 
@@ -137,6 +158,7 @@ void rampDown(Adafruit_DCMotor *motor, int topSpeed, int delayTime)
 { 
   // Bring motor down from speed topSpeed to zero,
   // in topSpeed increments, with a delay of delayTime between increments.
+  
   uint8_t i;
   for(i=topSpeed; i!=0; i--){
     motor->setSpeed(i);
@@ -144,34 +166,37 @@ void rampDown(Adafruit_DCMotor *motor, int topSpeed, int delayTime)
   }
 }
 
+void cutRight()
+{
+    steering->run(BACKWARD);
+    rampUp(steering, steerSpeed, steerDelay);
+}
 
-void turn22L()
-{ 
-  // Do a 22-degree three-point turn.
-  // (That's what I measured; this code is super fragile.)
-  
-  // STEER LEFT
-  steering->run(FORWARD);
-  rampUp(steering, steerSpeed, steerDelay);
-  // GO FORWARD
-  drive->run(FORWARD);
-  rampUp(drive, maxSpeed, driveDelay);
-  delay(500);
-  rampDown(drive, maxSpeed, driveDelay);
-  //STEER STRAIGHT
+void cutLeft()
+{
+    steering->run(FORWARD);
+    rampUp(steering, steerSpeed, steerDelay);
+}
+
+void turn22R()
+{
+  cutLeft();
+  go(-25);
   releaseSteering();
-  //STEER RIGHT
-  steering->run(BACKWARD);
-  rampUp(steering, steerSpeed, steerDelay);
-  // GO BACK
-  drive->run(BACKWARD);
-  rampUp(drive, maxSpeed, driveDelay);
-  delay(500);
-  rampDown(drive, maxSpeed, driveDelay);
-  //STEER STRAIGHT
+  cutRight();
+  go(25);
   releaseSteering();
 }
 
+void turn22L()
+{
+  cutRight();
+  go(-25);
+  releaseSteering();
+  cutLeft();
+  go(25);
+  releaseSteering();
+}
 
 void turn(int angle)
 {
@@ -188,11 +213,38 @@ void turn(int angle)
     }
   }
   else
-  {
-    // Who would ever want to be able to turn right?
-    Serial.println("I can only turn left. I'm not an ambi-turner.");
+  {  
+    // Turning right.
+    for(int i=0; i<abs(angle) / 22; i++)
+    {
+      turn22R();
+    }
   }
 }
+
+
+
+
+
+
+void go(int dist)
+{
+  // Proceed dist cm forward. dist can be negative.
+  if(dist < 0)
+  {
+    go(abs(dist), false);
+  }
+  else
+  {
+    go(dist, true);
+  }
+}
+
+
+
+
+
+
 
 
 void go(int dist, bool goForward)
@@ -217,9 +269,9 @@ void go(int dist, bool goForward)
   {
     drive->run(BACKWARD);
   }
-  rampUp(drive, maxSpeed, driveDelay);
-  delay(1000 * dist / 50); // 1000 ms is about right for 50 cm at this speed. Very fragile, I know.
-  rampDown(drive, maxSpeed, driveDelay);
+  rampUp(drive, driveSpeed, driveDelay);
+  delay(1000 * dist / 50);
+  rampDown(drive, driveSpeed, driveDelay);
 }
 
 
@@ -244,11 +296,15 @@ void releaseSteering()
 
 int getDistance()
 {
-  // Query the IR sensor for forward distance.
+  // Query the IR sensor for forward distance. Accept no negative readings.
   
-  int dist = irSensor.distance();
-  String msg = " ";
-  Serial.println(msg + dist + "cm ");
+  int dist = -1;
+  while(dist < 0){
+    dist = irSensor.distance();
+    String msg = " ";
+    Serial.println(msg + dist + "cm ");
+    delay(1);
+  }
   return dist;
 }
 
